@@ -1,7 +1,7 @@
 import { lookupLocal, normalize } from './dictionary.js';
-import { getWiki, grammarJapanese } from './wiki.js';
+import { createOnlineLookup } from './lookup.js';
 import { selectSpanishVoice } from './speech.js';
-import { translateEnglish as translate } from './api.js';
+
 
 const $=selector=>document.querySelector(selector);
 const esc=value=>String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -25,50 +25,15 @@ function render(entries,word){
     const isVerb=entry.pos.includes('動詞') || entry.form.includes('分詞');
     const badges=[`<span class="badge">${esc(entry.pos)}</span>`,entry.gender?`<span class="badge blue">${esc(entry.gender)}${entry.pos==='名詞'?'名詞':''}</span>`:'',`<span class="badge tan">${esc(entry.form || '基本形')}</span>`].join('');
     const details=[['人称',entry.person],['冠詞',entry.article],['複数形',entry.plural]].filter(([,v])=>v && v!=='—');
-    return `<article class="result-card"><div class="result-top"><div class="result-meta"><span>${entries.length>1?`${index+1} / ${entries.length}`:''}</span><button class="save" aria-pressed="false">＋ 保存</button></div><div class="word-line"><h2 lang="es">${esc(word)}</h2>${speakButton(word)}</div><div class="badges">${badges}</div><div class="meanings"><div><span class="lang-label">ENGLISH${isVerb && word!==entry.lemma?' · 原形の意味':''}</span><p class="meaning english" lang="en">${esc(entry.en)}</p></div><div><span class="lang-label">日本語${isVerb && word!==entry.lemma?' · 原形の意味':''}</span><p class="meaning">${esc(entry.ja || '日本語の項目が見つかりませんでした。')}</p>${entry.machine?'<div class="translation-note">MyMemory による参考翻訳</div>':''}${entry.translationError?`<div class="translation-note">${esc(entry.translationError)}</div>`:''}</div></div></div><div class="grammar-section"><div class="lemma-box"><span class="lemma-from" lang="es">${esc(word)}</span><span class="lemma-arrow">→</span><div><span class="lemma-caption">${isVerb?'原形':'基本形'}</span><button class="lemma-word" data-word="${esc(entry.lemma)}" lang="es">${esc(entry.lemma)}</button></div>${speakButton(entry.lemma)}</div>${details.length?`<div class="grammar-details">${details.map(([label,value])=>`<div><p class="detail-label">${label}</p><p class="detail-value">${esc(value)}</p></div>`).join('')}</div>`:''}${entry.note?`<p class="explanation">${esc(entry.note)}</p>`:''}${entry.conjugations?`<details class="conjugation"><summary>${esc(entry.tableLabel)}の活用を見る</summary><table aria-label="${esc(entry.lemma)}の活用"><tbody>${entry.conjugations.filter(row=>$('#dialect').value==='es-ES' || !row.person.startsWith('vosotros')).map(row=>`<tr${row.word===word?' class="current"':''}><td lang="es">${esc(row.person)}</td><td lang="es">${esc(row.word)}</td><td>${speakButton(row.word)}</td></tr>`).join('')}</tbody></table></details>`:''}</div>${entry.example?`<div class="example-box"><div class="example-heading">例文</div><p class="example-es" lang="es"><span>${esc(entry.example.es)}</span>${speakButton(entry.example.es)}</p><p class="example-en" lang="en">${esc(entry.example.en)}</p><p class="example-ja">${esc(entry.example.ja)}</p></div>`:''}<div class="source"><span>${online?'Wiktionary · 編集済 · CC BY-SA 4.0':''}</span><span><a href="${esc(wikiURL(word))}" target="_blank" rel="noopener noreferrer">英語の辞書 ↗</a> · <a href="${esc(wikiURL(entry.lemma,'ja'))}" target="_blank" rel="noopener noreferrer">日本語の辞書 ↗</a>${online && entry.lemma!==word?` · <a href="${esc(wikiURL(entry.lemma))}" target="_blank" rel="noopener noreferrer">原形の辞書 ↗</a>`:''}</span></div></article>`;
+    return `<article class="result-card"><div class="result-top"><div class="result-meta"><span>${entries.length>1?`${index+1} / ${entries.length}`:''}</span><button class="save" aria-pressed="false">＋ 保存</button></div><div class="word-line"><h2 lang="es">${esc(word)}</h2>${speakButton(word)}</div><div class="badges">${badges}</div><div class="meanings"><div><span class="lang-label">ENGLISH${isVerb && word!==entry.lemma?' · 原形の意味':''}</span><p class="meaning english" lang="en">${esc(entry.en)}</p></div><div><span class="lang-label">日本語${isVerb && word!==entry.lemma?' · 原形の意味':''}</span><p class="meaning">${esc(entry.ja || (entry.pending?'日本語を取得中…':'日本語の項目が見つかりませんでした。'))}</p>${entry.machine?'<div class="translation-note">MyMemory による参考翻訳</div>':''}${entry.translationError?`<div class="translation-note">${esc(entry.translationError)}</div>`:''}</div></div></div><div class="grammar-section"><div class="lemma-box"><span class="lemma-from" lang="es">${esc(word)}</span><span class="lemma-arrow">→</span><div><span class="lemma-caption">${isVerb?'原形':'基本形'}</span><button class="lemma-word" data-word="${esc(entry.lemma)}" lang="es">${esc(entry.lemma)}</button></div>${speakButton(entry.lemma)}</div>${details.length?`<div class="grammar-details">${details.map(([label,value])=>`<div><p class="detail-label">${label}</p><p class="detail-value">${esc(value)}</p></div>`).join('')}</div>`:''}${entry.note?`<p class="explanation">${esc(entry.note)}</p>`:''}${entry.conjugations?`<details class="conjugation"><summary>${esc(entry.tableLabel)}の活用を見る</summary><table aria-label="${esc(entry.lemma)}の活用"><tbody>${entry.conjugations.filter(row=>$('#dialect').value==='es-ES' || !row.person.startsWith('vosotros')).map(row=>`<tr${row.word===word?' class="current"':''}><td lang="es">${esc(row.person)}</td><td lang="es">${esc(row.word)}</td><td>${speakButton(row.word)}</td></tr>`).join('')}</tbody></table></details>`:''}</div>${entry.example?`<div class="example-box"><div class="example-heading">例文</div><p class="example-es" lang="es"><span>${esc(entry.example.es)}</span>${speakButton(entry.example.es)}</p><p class="example-en" lang="en">${esc(entry.example.en)}</p><p class="example-ja">${esc(entry.example.ja)}</p></div>`:''}<div class="source"><span>${online?'Wiktionary · 編集済 · CC BY-SA 4.0':''}</span><span><a href="${esc(wikiURL(word))}" target="_blank" rel="noopener noreferrer">英語の辞書 ↗</a> · <a href="${esc(wikiURL(entry.lemma,'ja'))}" target="_blank" rel="noopener noreferrer">日本語の辞書 ↗</a>${online && entry.lemma!==word?` · <a href="${esc(wikiURL(entry.lemma))}" target="_blank" rel="noopener noreferrer">原形の辞書 ↗</a>`:''}</span></div></article>`;
   }).join('');
   if(!entries.length) $('#results').innerHTML='<div class="notice">該当なし。つづりを確認してください。</div>';
   if(entries.some(e=>e.source==='local')) $('#results').insertAdjacentHTML('beforeend','<button id="online-more" class="quiet">オンライン検索 ↗</button>');
   renderSaved();
 }
-const wikiCache=new Map();
-async function wiki(word,lang,signal){
-  const key=`${lang}:${word}`;
-  if(wikiCache.has(key))return wikiCache.get(key);
-  const entries=await getWiki(word,lang,signal);
-  if(wikiCache.size>=100)wikiCache.delete(wikiCache.keys().next().value);
-  wikiCache.set(key,entries);return entries;
-}
-async function lookupOnline(word,signal){
-  const [enResult,jaResult]=await Promise.allSettled([wiki(word,'en',signal),wiki(word,'ja',signal)]);
-  if(signal.aborted)throw new DOMException('Aborted','AbortError');
-  if(enResult.status==='rejected')throw enResult.reason;
-  const jaEntries=jaResult.status==='fulfilled'?jaResult.value:[];
-  const results=[];
-  for(const original of enResult.value.slice(0,6)){
-    for(const lemma of (original.lemmas.length?original.lemmas:[word]).slice(0,3)){
-      let en=original.definitions.slice(0,2).join('; '), ja='', local=null;
-      let lemmaJA=jaEntries;
-      if(lemma!==word){
-        local=lookupLocal(lemma).find(e=>e.pos===original.pos || e.pos.includes(original.pos));
-        if(local){en=local.en;ja=local.ja;}
-        else {
-          const [le,lj]=await Promise.allSettled([wiki(lemma,'en',signal),wiki(lemma,'ja',signal)]);
-          const matching=le.status==='fulfilled'?le.value.find(e=>e.pos===original.pos):null;
-          if(matching)en=matching.definitions.slice(0,2).join('; ');
-          lemmaJA=lj.status==='fulfilled'?lj.value:[];
-        }
-      }
-      if(!ja)ja=lemmaJA.find(e=>e.pos===original.pos)?.definitions.slice(0,2).join('／')||'';
-      const entry={...original,lemma,en,ja,form:lemma!==word?'活用形・変化形':'辞書の見出し',note:lemma!==word?grammarJapanese(original.definitions.filter(d=>d.includes(lemma)).join('／')||original.definitions.join('／')):'',example:local?.example};
-      if(!ja){
-        try{entry.ja=await translate(en,signal);entry.machine=true;}catch(error){if(signal.aborted)throw error;entry.translationError=error.message || '日本語の参考翻訳を取得できませんでした。';}
-      }
-      results.push(entry);
-    }
-  }
-  return {entries:results,jaFailed:jaResult.status==='rejected'};
-}
+let resultStorage;
+try { resultStorage=window.localStorage; } catch {}
+const lookupOnline=createOnlineLookup({storage:resultStorage});
 async function search(raw,forceOnline=false){
   const word=normalize(raw);
   if(!word){status('スペイン語の単語を入力してください。',true);$('#word').focus();return;}
@@ -79,13 +44,16 @@ async function search(raw,forceOnline=false){
     $('#tokens').innerHTML=[...new Set(word.split(' '))].map(token=>`<button data-word="${esc(token)}">${esc(token)}</button>`).join('');
     status('聞き取った文から、調べたい単語を選んでください。');$('#results').removeAttribute('aria-busy');return;
   }
-  $('#tokens').hidden=true;$('#word').value=word;
+  $('#tokens').hidden=true;$('#word').value=word;updateClear();
   controller?.abort();controller=new AbortController();const id=++requestId;
   const local=lookupLocal(word);
   if(local.length && !forceOnline){render(local,word);$('#results').removeAttribute('aria-busy');status(local.length>1?'複数の解釈があります。':'');return;}
   status('検索中…');$('#results').setAttribute('aria-busy','true');
   try{
-    const result=await lookupOnline(word,controller.signal);
+    const result=await lookupOnline(word,controller.signal,entries=>{
+      if(id!==requestId)return;
+      render(entries,word);status(entries.some(entry=>entry.pending)?'日本語を取得中…':'検索中…');
+    },{refresh:forceOnline});
     if(id!==requestId)return;
     if(forceOnline && !result.entries.length && local.length){render(local,word);status('オンラインで追加の項目が見つからなかったため、内蔵辞書を表示しています。');}
     else {render(result.entries,word);status(result.entries.length?(result.jaFailed?'日本語辞書に接続できなかったため、利用可能な参考訳を表示しています。':''):'辞書にスペイン語の項目が見つかりませんでした。');}
@@ -96,6 +64,15 @@ async function search(raw,forceOnline=false){
     status(local.length?'接続できなかったため、内蔵辞書を表示しています。':error.message,true);
   }finally{if(id===requestId)$('#results').removeAttribute('aria-busy');}
 }
+function updateClear(){ $('#clear-word').hidden=!$('#word').value; }
+$('#word').addEventListener('input',updateClear);
+$('#clear-word').addEventListener('click',()=>{
+  controller?.abort();requestId++;
+  recognition?.abort();
+  $('#word').value='';updateClear();$('#tokens').hidden=true;
+  $('#results').removeAttribute('aria-busy');status('');$('#word').focus();
+});
+updateClear();
 $('#search-form').addEventListener('submit',event=>{event.preventDefault();search($('#word').value);});
 document.addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button)return;
@@ -154,10 +131,11 @@ if(!Recognition){$('#mic').disabled=true;$('#mic').title='このブラウザは�
 else{
   recognition=new Recognition();recognition.interimResults=false;recognition.maxAlternatives=1;recognition.continuous=false;
   recognition.onstart=()=>{listening=true;$('#mic').classList.add('listening');$('#mic').setAttribute('aria-label','音声入力を停止');status('聞いています… スペイン語を話してください。');};
-  recognition.onresult=event=>{$('#word').value=normalize(event.results[0][0].transcript);status('聞き取りました。文字を確認・修正して「調べる」を押してください。');$('#word').focus();};
+  recognition.onresult=event=>{$('#word').value=normalize(event.results[0][0].transcript);updateClear();status('聞き取りました。文字を確認・修正して「調べる」を押してください。');$('#word').focus();};
   recognition.onerror=event=>{const messages={'not-allowed':'マイクの使用が許可されていません。ブラウザのサイト設定で許可してください。','service-not-allowed':'音声認識サービスがこのブラウザで利用できません。','audio-capture':'マイクが見つかりません。端末の接続を確認してください。','no-speech':'音声を聞き取れませんでした。もう一度お試しください。','network':'音声認識サービスに接続できません。対応ブラウザとネット接続を確認してください。','language-not-supported':'このブラウザでは選択したスペイン語の音声認識が利用できません。','aborted':'音声入力を停止しました。'};status(messages[event.error]||'音声入力に失敗しました。文字でも入力できます。',true);};
   recognition.onend=()=>{listening=false;$('#mic').classList.remove('listening');$('#mic').setAttribute('aria-label','スペイン語を音声入力');};
   $('#mic').addEventListener('click',()=>{if(listening){recognition.stop();status('音声入力を停止しています…');return;}recognition.lang=$('#dialect').value;try{recognition.start();}catch{status('音声入力の準備中です。少し待ってからお試しください。',true);}});
 }
 render(lookupLocal('he'),'he');
 window.addEventListener('pagehide',()=>{recognition?.abort();window.speechSynthesis?.cancel();controller?.abort();});
+
