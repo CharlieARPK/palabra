@@ -5,7 +5,7 @@
 <header><a class="brand" href="./" aria-label="Palabra ホーム"><span class="brand-icon">p.</span>palabra</a></header>
 <main>
 <section class="search-area" aria-label="単語検索">
-<form id="search-form"><label class="sr-only" for="word">スペイン語の単語</label><span class="search-icon" aria-hidden="true">⌕</span><input id="word" name="word" placeholder="スペイン語を入力" value="he" maxlength="80" autocomplete="off" autocapitalize="none" enterkeyhint="search" spellcheck="false" lang="es" required><button type="button" id="mic" class="mic" aria-label="スペイン語を音声入力" title="スペイン語を音声入力"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3m-4 0h8"/></svg></button><button type="submit" class="search-button">調べる <span>→</span></button></form>
+<form id="search-form"><label class="sr-only" for="word">スペイン語の単語</label><span class="search-icon" aria-hidden="true">⌕</span><input id="word" name="word" placeholder="スペイン語を入力" value="he" maxlength="80" autocomplete="off" autocapitalize="none" enterkeyhint="search" spellcheck="false" lang="es" required><button type="button" id="clear-word" class="clear-word" aria-label="入力を消去" title="入力を消去">×</button><button type="button" id="mic" class="mic" aria-label="スペイン語を音声入力" title="スペイン語を音声入力"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11v1a6 6 0 0 0 12 0v-1M12 18v3m-4 0h8"/></svg></button><button type="submit" class="search-button">調べる <span>→</span></button></form>
 <p id="status" class="status" role="status" aria-live="polite"></p><div id="tokens" class="tokens" hidden></div>
 </section>
 <div class="workspace"><section id="results" aria-label="検索結果" aria-live="polite"></section><aside>
@@ -14,3 +14,4 @@
 </aside></div>
 </main>
 </body></html>
+
