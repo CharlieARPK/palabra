@@ -2,6 +2,9 @@
 
 .lemma-box{flex-wrap:wrap}.lemma-from,.lemma-word{overflow-wrap:anywhere;max-width:100%}.lemma-box>div{min-width:0}.meaning{overflow-wrap:anywhere}
 
+.clear-word{flex:0 0 36px;height:40px;border:0;background:none;border-radius:8px;color:#819072;font:26px/1 sans-serif;padding:0}.clear-word:hover{background:#f1f4eb}.clear-word[hidden]{display:none}
+@media(max-width:640px){.clear-word{flex-basis:44px;height:44px}.search-icon{display:none}.search-button{padding:13px 12px}.search-button span{display:none}}
+
 /* Personal dictionary: compact search-first layout. */
 header{height:72px}main>.search-area{margin:24px 0 18px}.status:empty,#voice-note:empty{display:none}.notebook #saved-list{margin-top:16px}.empty-saved{border:0;padding:10px 0;text-align:left}.result-meta{min-height:30px}.result-top{padding-top:18px}.source:has(>span:first-child:empty)>span:first-child{display:none}.workspace{margin-bottom:24px}.speech-settings p{font-size:10px}.grammar-section{padding-top:18px}
 
@@ -28,3 +31,4 @@ header{height:72px}main>.search-area{margin:24px 0 18px}.status:empty,#voice-not
   .lemma-word{font-size:26px}
 }
 @media(max-width:360px){.meanings{grid-template-columns:1fr}.search-icon{display:none}.search-button{padding:12px}.search-button span{display:none}}
+
