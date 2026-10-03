@@ -70,6 +70,8 @@ $('#clear-word').addEventListener('click',()=>{
   controller?.abort();requestId++;
   recognition?.abort();
   $('#word').value='';updateClear();$('#tokens').hidden=true;
+  $('#tokens').replaceChildren();$('#results').replaceChildren();
+  currentWord='';currentEntries=[];
   $('#results').removeAttribute('aria-busy');status('');$('#word').focus();
 });
 updateClear();
@@ -95,7 +97,7 @@ try {
 for(const id of ['dialect','speed'])$('#'+id).addEventListener('change',()=>{
   try{localStorage.setItem(settingsKey,JSON.stringify({dialect:$('#dialect').value,speed:$('#speed').value}));}catch{}
   updateVoices();
-  if(id==='dialect')render(currentEntries,currentWord);
+  if(id==='dialect' && currentWord)render(currentEntries,currentWord);
 });
 let voices=[], speechTimer, speechSequence=0, activeUtterance;
 function voiceFallbackNote(){

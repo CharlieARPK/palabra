@@ -35,11 +35,13 @@ export function createOnlineLookup({ wiki = getWiki, local = lookupLocal, transl
     const translations = new Map();
     function read(term, lang) {
       const key = `${lang}:${term}`;
-      if (!refresh && wikiCache.has(key)) return Promise.resolve(wikiCache.get(key));
+      const cached = wikiCache.get(key);
+      if (!refresh && cached && now() - cached.time < MAX_AGE) return Promise.resolve(cached.entries);
       if (!pending.has(key)) pending.set(key, wiki(term, lang, signal).then(entries => {
         signal.throwIfAborted();
+        wikiCache.delete(key);
         if (wikiCache.size >= 100) wikiCache.delete(wikiCache.keys().next().value);
-        wikiCache.set(key, entries);
+        wikiCache.set(key, { time: now(), entries });
         return entries;
       }));
       return pending.get(key);
